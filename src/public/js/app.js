@@ -1,8 +1,10 @@
 const socket = new WebSocket(`wss://${window.location.host}`);
 
-socket.addEventListener("open", () =>{
-  console.log("Connected to Server ✅");
-});
+function handleOpen() {
+  console.log("Connected to the Server ✅");
+}
+
+socket.addEventListener("open", handleOpen);
 
 socket.addEventListener("message", (message) => {
   console.log("New message: ", message.data);
