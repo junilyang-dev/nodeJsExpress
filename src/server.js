@@ -35,11 +35,15 @@ function onSocketClose() {
   console.log("Disconnected from the Browser ❌");
 }
 
+const sockets = [];
+
 // WebSocket 서버에 연결  WebSocket 연결이 발생할 때 실행될 함수
 wss.on("connection", (socket) => {
+  sockets.push(socket);
   console.log("Connected to Browser ✅");
   socket.on("close", onSocketClose);
   socket.on("message", (message) => {
+    sockets.forEach(aSocket => aSocket.send(message.toString()));
     console.log(message.toString());
     socket.send(message.toString());
   });
