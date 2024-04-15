@@ -35,15 +35,14 @@ function onSocketClose() {
   console.log("Disconnected from the Browser ❌");
 }
 
-function onSocketMessage(message) {
-  console.log(message.toString('utf8'));
-}
-
 // WebSocket 서버에 연결  WebSocket 연결이 발생할 때 실행될 함수
 wss.on("connection", (socket) => {
   console.log("Connected to Browser ✅");
   socket.on("close", onSocketClose);
-  socket.on("message", onSocketMessage);
+  socket.on("message", (message) => {
+    console.log(message.toString());
+    socket.send(message.toString());
+  });
   socket.send("hello!");
 });
 
