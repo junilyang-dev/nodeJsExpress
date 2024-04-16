@@ -45,9 +45,9 @@ wss.on("connection", (socket) => {
   socket.on("message", (message) => {
     sockets.forEach(aSocket => aSocket.send(message.toString()));
     console.log(message.toString());
-    socket.send(message.toString());
+    //socket.send(message.toString());두번 받는 문제로 인해 주석
   });
-  socket.send("hello!");
+  //socket.send("hello!"); 최초에 보
 });
 
 // 서버를 포트 3000에서 시작
