@@ -43,8 +43,10 @@ wss.on("connection", (socket) => {
   console.log("Connected to Browser ✅");
   socket.on("close", onSocketClose);
   socket.on("message", (message) => {
-    sockets.forEach(aSocket => aSocket.send(message.toString()));
-    console.log(message.toString());
+    const parsed = JSON.parse(message);
+    if(parsed.type === "new_message"){
+      sockets.forEach(aSocket => aSocket.send(parsed.payload));
+    }
     //socket.send(message.toString());두번 받는 문제로 인해 주석
   });
   //socket.send("hello!"); 최초에 보
