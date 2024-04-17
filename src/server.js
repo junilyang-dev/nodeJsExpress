@@ -40,16 +40,18 @@ const sockets = [];
 // WebSocket 서버에 연결  WebSocket 연결이 발생할 때 실행될 함수
 wss.on("connection", (socket) => {
   sockets.push(socket);
+  socket["nickname"] = "Anon";
   console.log("Connected to Browser ✅");
   socket.on("close", onSocketClose);
-  socket.on("message", (message) => {
-    const parsed = JSON.parse(message);
-    if(parsed.type === "new_message"){
-      sockets.forEach(aSocket => aSocket.send(parsed.payload));
+  socket.on("message", (msg) => {
+    const message = JSON.parse(msg);
+    switch (message.type) {
+      case "new_message":
+        sockets.forEach(aSocket => aSocket.send(`${socket.nickname} : ${message.payload}`));
+      case "nickname":
+        socket["nickname"] = message.payload;
     }
-    //socket.send(message.toString());두번 받는 문제로 인해 주석
   });
-  //socket.send("hello!"); 최초에 보
 });
 
 // 서버를 포트 3000에서 시작
