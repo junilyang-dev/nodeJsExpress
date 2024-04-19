@@ -1,3 +1,4 @@
+/*
 const socket = new WebSocket(`wss://${window.location.host}`);
 const messageList = document.querySelector('ul');
 const messageForm = document.querySelector('#message');
@@ -71,3 +72,4 @@ function handleNickSubmit(event) {
 messageForm.addEventListener("submit", handleSubmit);
 //닉네임form에서 submit 동작이 일어날 때 실행
 nickForm.addEventListener("submit", handleNickSubmit);
+*/
