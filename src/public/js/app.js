@@ -2,7 +2,17 @@
 // 이 함수는 현재 웹 페이지가 로드된 서버와 자동으로 연결을 시도합니다.
 const socket = io();
 
+const welcome = document.getElementById("welcome");
+const form = welcome.querySelector("form");
 
+function handleRoomSubmit(event) {
+  event.preventDefault();
+  const input = form.querySelector("input");
+  socket.emit("room", {payload:input.value});
+  input.value = "";
+}
+
+form.addEventListener("submit", handleRoomSubmit);
 /*
 const socket = new WebSocket(`wss://${window.location.host}`);
 const messageList = document.querySelector('ul');
