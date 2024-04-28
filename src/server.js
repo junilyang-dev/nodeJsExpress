@@ -65,6 +65,49 @@ function conutRoom(roomName) {
   return wsServer.sockets.adapter.rooms.get(roomName)?.size;
 }
 
+function countAll() {
+  const adapter = wsServer.sockets.adapter;
+
+  // 전체 접속자 수: 모든 소켓의 개수
+  const total = adapter.sids.size;
+
+  // 방 개수 및 각 방에 있는 사람 수
+  const roomsInfo = {};
+  adapter.rooms.forEach((sockets, roomName) => {
+    // 각 방에 소켓 ID가 방 이름과 동일하지 않으면, 그 방은 실제 채팅방입니다.
+    if (sockets.size > 0 && adapter.sids.has(roomName) === false) {
+      roomsInfo[roomName] = sockets.size;
+    }
+  });
+
+  // 대기 접속자 수 계산: 방에 속하지 않은 소켓의 수
+  let out = 0;
+  adapter.sids.forEach((rooms, socketId) => {
+    if (rooms.size === 1) { // 소켓이 자신의 ID로된 방에만 속해 있다면, 대기 중으로 간주
+      out++;
+    }
+  });
+
+  // 결과 객체 구성
+  var test = {
+    total: total, // 전체 접속자 수
+    rooms: roomsInfo, // 각 방의 이름과 그 방의 소켓 수
+    out: out // 대기 중인 소켓 수
+  };
+
+  return test;
+}
+
+function updateStatus() {
+  const status = countAll();
+  wsServer.sockets.emit("status_update", {
+    total: status.total,
+    rooms: Object.keys(status.rooms).length,
+    out: status.out
+  });
+}
+
+
 // WebSocket 서버의 'connection' 이벤트 리스너를 설정합니다. 
 // 이 이벤트는 클라이언트가 서버에 연결될 때마다 트리거됩니다.
 wsServer.on("connection", socket => {
@@ -75,7 +118,7 @@ wsServer.on("connection", socket => {
   socket.onAny((event) => {
     console.log(`Socket Event: ${event}`);
   });
-
+  updateStatus();
   // 'enter_room' 이벤트 리스너를 설정합니다.
   // 클라이언트가 채팅방에 들어가고자 할 때 이 이벤트가 발생합니다.
   socket.on("enter_room", (roomName, done) => {
@@ -87,10 +130,10 @@ wsServer.on("connection", socket => {
     socket["nickname"] = roomName.nickname;
     // 클라이언트에게 작업이 완료되었음을 알리기 위해 콜백 함수(done)를 호출합니다.
     // 클라이언트가 제공한 이 콜백 함수는 서버의 작업이 완료된 후 클라이언트 측에서 특정 행동을 하도록 할 수 있습니다.
-    done(conutRoom(roomName.payload));
+    done(conutRoom(roomName.payload), updateStatus());
     // 서버에서 특정 채팅방(roomName.payload)의 모든 클라이언트에게 'welcome' 이벤트를 방송합니다.
     // 이 방송은 메시지를 보낸 클라이언트를 제외한 모든 클라이언트에게 전송됩니다.
-    socket.to(roomName.payload).emit("welcome", socket.nickname, conutRoom(roomName.payload));
+    socket.to(roomName.payload).emit("welcome", socket.nickname, conutRoom(roomName.payload), updateStatus());
     // "room_change" 이벤트를 서버에 연결된 모든 소켓(클라이언트)에게 전송합니다.
     // 이 이벤트는 publicRooms() 함수를 호출하여 얻은 공개 채팅방 목록 배열을 보냅니다.
     wsServer.sockets.emit("room_change", publicRooms());
@@ -103,7 +146,7 @@ wsServer.on("connection", socket => {
     socket.rooms.forEach((room) => {
       // 해당 방에 있는 다른 클라이언트들에게 'bye' 이벤트를 방송합니다.
       // 이는 현재 클라이언트가 방을 떠나고 있음을 알리는 신호입니다.
-      socket.to(room).emit("bye", socket.nickname, conutRoom(room)-1);
+      socket.to(room).emit("bye", socket.nickname, conutRoom(room)-1, updateStatus());
     });
   });
 
