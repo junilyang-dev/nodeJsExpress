@@ -149,6 +149,10 @@ socket.on("status_update", ({total, rooms, out, roomDetail}) => {
       socket.emit("enter_room", room.split(" (")[0], showRoom); // 괄호 전의 문자열이 방 이름
       roomName = room.split(" (")[0];
     });
+      if (room.split(" (")[0] === roomName) {
+        li.style.color = "red"; // 현재 방을 빨간색으로 표시
+        li.style.fontWeight = "bold"; // 글자를 굵게
+      }
     roomList.appendChild(li);
   });
 });
