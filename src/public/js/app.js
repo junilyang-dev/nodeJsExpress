@@ -145,6 +145,10 @@ socket.on("status_update", ({total, rooms, out, roomDetail}) => {
     roomDetail.forEach(room => {
     const li = document.createElement("li");
     li.innerText = room; // 방 이름과 참여 인원 수를 표시
+    li.addEventListener("click", () => {
+      socket.emit("enter_room", room.split(" (")[0], showRoom); // 괄호 전의 문자열이 방 이름
+      roomName = room.split(" (")[0];
+    });
     roomList.appendChild(li);
   });
 });
