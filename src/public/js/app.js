@@ -53,8 +53,7 @@ function handleNicknameSubmit(event) {
 }
 
 // showRoom 함수를 정의합니다. 이 함수는 채팅방을 화면에 표시하는 데 사용됩니다.
-function showRoom(newCount, total) {
-  totalCount(total);
+function showRoom(newCount) {
   // welcome 요소를 화면에서 숨깁니다. 이는 사용자가 방을 선택하면 초기 환영 메시지나 방 선택 화면을 숨기기 위함입니다.
   welcome.hidden = true;
   // room 요소를 화면에 표시합니다. 이는 사용자가 방을 선택하면 해당 방의 채팅 인터페이스를 보여주기 위함입니다.
@@ -115,8 +114,7 @@ function addMessage(message) {
 
 // socket 객체에 'welcome' 이벤트 리스너를 추가합니다.
 // 이 이벤트는 서버로부터 'welcome' 신호를 받았을 때 실행됩니다.
-socket.on("welcome", (user, newCount, total) => {
-  totalCount(total);
+socket.on("welcome", (user, newCount) => {
   const h3 = room.querySelector("h3");
   h3.innerText = `Room ${roomName} (${newCount})`;
   // 'welcome' 이벤트가 발생하면 "사용자명 joined!"라는 메시지를 addMessage 함수를 사용하여 화면에 표시합니다.
@@ -125,8 +123,7 @@ socket.on("welcome", (user, newCount, total) => {
 
 // 'bye' 이벤트를 수신하면 실행될 함수를 등록합니다.
 // 이 이벤트는 채팅방에서 누군가가 나갈 때 발생합니다.
-socket.on("bye", (left, newCount, total) => {
-  totalCount(total);
+socket.on("bye", (left, newCount) => {
   const h3 = room.querySelector("h3");
   h3.innerText = `Room ${roomName} (${newCount})`;
   // "사용자명 left! ㅠㅠ" 메시지를 채팅 화면에 추가하는 addMessage 함수를 호출합니다.
@@ -138,16 +135,21 @@ socket.on("bye", (left, newCount, total) => {
 // 이 이벤트는 채팅방에서 새로운 메시지가 도착했을 때 발생합니다.
 socket.on("new_message", addMessage);
 
-socket.on("status_update", totalCount);
-
-function totalCount(total) {
+socket.on("status_update", ({total, rooms, out, roomDetail}) => {
   const state = document.getElementById("state");
   const h4 = state.querySelector("h4");
-  h4.innerText = `total : ${total.total} room : ${total.rooms} out : ${total.out} `;
-}
+  h4.innerText = `total : ${total} room : ${rooms} out : ${out}`;
+  // 방 목록을 업데이트
+  const roomList = document.getElementById("roomList");
+  roomList.innerHTML = ""; // 기존 목록 초기화
+    roomDetail.forEach(room => {
+    const li = document.createElement("li");
+    li.innerText = room; // 방 이름과 참여 인원 수를 표시
+    roomList.appendChild(li);
+  });
+});
 // 'room_change' 이벤트를 리스닝합니다. 이 이벤트는 채팅방 목록이 변경되었을 때 서버로부터 받습니다.
-socket.on("room_change", (rooms, state) => {
-  console.log(state);
+socket.on("room_change", (rooms) => {
   // 'welcome' 요소 내에서 'ul' 요소를 찾아 roomList 변수에 저장합니다.
   const roomList = welcome.querySelector("ul");
 
