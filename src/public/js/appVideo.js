@@ -9,6 +9,11 @@ const muteBtn = document.getElementById("mute");
 const cameraBtn = document.getElementById("camera");
 const camerasSelect = document.getElementById("cameras");
 
+const welcome = document.getElementById("welcome");
+const call = document.getElementById("call");
+
+call.hidden = true;
+
 // 미디어 스트림을 저장할 변수를 선언합니다.
 let myStream;
 // 음소거 상태를 저장할 변수를 선언하고, 초기값은 false로 설정합니다. (음소거되지 않음)
@@ -76,9 +81,6 @@ async function getMedia(deviceId) {
   }
 }
 
-// getMedia 함수를 호출하여 페이지 로드 시 미디어 스트림을 즉시 가져옵니다.
-getMedia();
-
 // 음소거 버튼 클릭 이벤트를 처리하는 함수를 정의합니다.
 function handleMuteClick() {
   // myStream에서 오디오 트랙들을 가져옵니다. myStream은 getUserMedia()를 통해 얻은 미디어 스트림 객체입니다.
@@ -144,3 +146,13 @@ cameraBtn.addEventListener("click", handleCameraClick);
 // 사용자가 드롭다운 메뉴에서 다른 카메라를 선택하면 handleCameraChange 함수가 호출됩니다.
 camerasSelect.addEventListener("input", handleCameraChange);
 
+const welcomeForm = welcome.querySelector("form");
+
+function handleWelcomeSubmit(event) {
+  event.preventDefault();
+  const input = welcomeForm.querySelector("input");
+  socket.emit("join_room",input.value);
+  input.value = "";
+}
+
+welcomeForm.addEventListener("submit",handleWelcomeSubmit);
