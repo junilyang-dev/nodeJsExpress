@@ -20,6 +20,7 @@ let myStream;
 let muted = false;
 // 카메라 상태를 저장할 변수를 선언하고, 초기값은 false로 설정합니다. (카메라가 켜져 있음)
 let cameraOff = false;
+let roomName;
 // getCameras라는 비동기 함수를 정의합니다.
 async function getCameras() {
   try {
@@ -85,9 +86,9 @@ async function getMedia(deviceId) {
 function handleMuteClick() {
   // myStream에서 오디오 트랙들을 가져옵니다. myStream은 getUserMedia()를 통해 얻은 미디어 스트림 객체입니다.
   myStream.getAudioTracks().forEach((track) => {
-      // 각 오디오 트랙의 enabled 속성을 토글합니다.
-      // enabled 속성은 불리언 값으로, 트랙이 활성화되어 있으면 true, 비활성화되어 있으면 false입니다.
-      track.enabled = !track.enabled;
+    // 각 오디오 트랙의 enabled 속성을 토글합니다.
+    // enabled 속성은 불리언 값으로, 트랙이 활성화되어 있으면 true, 비활성화되어 있으면 false입니다.
+    track.enabled = !track.enabled;
   });
   if (!muted) {
     // 현재 음소거 상태가 아니라면 버튼의 텍스트를 "Unmute"로 변경하고, 음소거 상태를 true로 설정합니다.
@@ -104,9 +105,9 @@ function handleMuteClick() {
 function handleCameraClick() {
   // myStream에서 비디오 트랙들을 가져옵니다. myStream은 getUserMedia()를 통해 얻은 미디어 스트림 객체입니다.
   myStream.getVideoTracks().forEach((track) => {
-      // 각 비디오 트랙의 enabled 속성을 토글합니다.
-      // enabled 속성은 불리언 값으로, 트랙이 활성화되어 있으면 true, 비활성화되어 있으면 false입니다.
-      track.enabled = !track.enabled;
+    // 각 비디오 트랙의 enabled 속성을 토글합니다.
+    // enabled 속성은 불리언 값으로, 트랙이 활성화되어 있으면 true, 비활성화되어 있으면 false입니다.
+    track.enabled = !track.enabled;
   });
 
   if (cameraOff) {
@@ -137,7 +138,6 @@ async function handleCameraChange() {
   }
 }
 
-
 // muteBtn 요소에 "click" 이벤트 리스너를 추가하여 handleMuteClick 함수를 연결합니다.
 muteBtn.addEventListener("click", handleMuteClick);
 // cameraBtn 요소에 "click" 이벤트 리스너를 추가하여 handleCameraClick 함수를 연결합니다.
@@ -148,11 +148,23 @@ camerasSelect.addEventListener("input", handleCameraChange);
 
 const welcomeForm = welcome.querySelector("form");
 
+function startMedia() {
+  welcome.hidden = true;
+  call.hidden = false;
+  getMedia();
+}
+
 function handleWelcomeSubmit(event) {
   event.preventDefault();
   const input = welcomeForm.querySelector("input");
-  socket.emit("join_room",input.value);
+  socket.emit("join_room", input.value, startMedia);
+  roomName = input.value;
   input.value = "";
 }
 
-welcomeForm.addEventListener("submit",handleWelcomeSubmit);
+welcomeForm.addEventListener("submit", handleWelcomeSubmit);
+
+
+socket.on("welcome", () => {
+  console.log("someone joined");
+})
