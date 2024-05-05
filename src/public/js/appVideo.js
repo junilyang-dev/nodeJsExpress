@@ -225,6 +225,8 @@ socket.on("offer", async (offer) => {
   // 받은 오퍼에 대한 응답으로 SDP 답변을 생성합니다. 이 작업은 비동기적으로 수행되며,
   // 답변이 완성되면 이를 오퍼를 보낸 피어에게 보내기 위한 준비가 됩니다.
   const answer = await myPeerConnection.createAnswer();
+  // socket.emit 메소드를 사용하여 'answer' 이벤트를 서버로 전송합니다.
+  // 이 이벤트는 WebRTC 연결 과정에서 생성된 SDP 답변과 특정 방의 이름을 포함합니다.
   socket.emit("answer", answer, roomName);
   // 생성된 답변으로 로컬 설명을 설정합니다. 이 작업은 로컬 설정을 완료하고,
   // 피어 연결이 이 답변을 원격 피어에게 보내 통신 절차를 완료할 준비를 합니다.
@@ -242,10 +244,15 @@ socket.on("answer", async (answer) => {
   myPeerConnection.setRemoteDescription(answer);
 });
 
-socket.on("ice", (ice) => {
-  console.log("received cadidate");
+// WebSocket을 통해 'ice' 이벤트를 수신하는 리스너를 설정합니다.
+// 이 이벤트는 ICE 후보자(네트워크 연결 정보)를 포함하고 있습니다.
+socket.on("ice", ice => {
+  console.log("received ice candidate");
+  // 수신된 ICE 후보자를 myPeerConnection 객체에 추가합니다.
+  // addIceCandidate 메소드는 원격 피어와의 연결 경로를 설정하는 데 사용되는 ICE 후보자를 처리합니다.
   myPeerConnection.addIceCandidate(ice);
-})
+});
+
 //RTC Code
 
 // makeConnection 함수를 정의합니다. 이 함수는 WebRTC 피어 연결을 설정합니다.
@@ -265,12 +272,20 @@ function makeConnection() {
       myPeerConnection.addTrack(track, myStream));
 }
 
+// handleIce 함수는 ICE 후보자 이벤트를 처리합니다.
 function handleIce(data) {
-  console.log("send cadidate");
+  console.log("send candidate");
+  // socket.emit을 사용하여 'ice' 이벤트를 서버로 전송합니다. 이때, ICE 후보자(data.candidate)와 방 이름(roomName)을 전송합니다.
+  // 이는 다른 피어에게 네트워크 연결 정보를 전달하여 연결 설정을 돕습니다.
   socket.emit("ice", data.candidate, roomName);
 }
 
+// handleAddStream 함수는 원격 피어로부터 받은 미디어 스트림 이벤트를 처리합니다.
 function handleAddStream(data) {
+  // 'peerFace'라는 ID를 가진 HTML 요소를 찾아 peerFace 변수에 저장합니다.
   const peerFace = document.getElementById("peerFace");
-  peerFace.srcObject = data.stream
+  // peerFace 요소의 srcObject 속성을 data.stream으로 설정합니다.
+  // 이는 원격 피어로부터 받은 미디어 스트림을 해당 HTML 요소에서 재생할 수 있게 합니다.
+  // 원격 피어의 비디오나 오디오가 사용자에게 보여질 것입니다.
+  peerFace.srcObject = data.stream;
 }
