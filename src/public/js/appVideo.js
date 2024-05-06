@@ -31,7 +31,7 @@ let roomName;
 // myPeerConnection 변수를 선언합니다. 이 변수는 나중에 RTCPeerConnection 객체의 인스턴스를 저장하는 데 사용될 수 있습니다.
 // RTCPeerConnection은 WebRTC API의 일부로, 브라우저 간 피어 투 피어 연결을 설정하는 데 사용됩니다.
 let myPeerConnection;
-
+let myDataChannel;
 
 // getCameras라는 비동기 함수를 정의합니다.
 async function getCameras() {
@@ -207,6 +207,9 @@ welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 // 'welcome' 이벤트가 socket에서 수신되면 실행되는 이벤트 리스너를 설정합니다.
 // 이 이벤트는 다른 클라이언트가 채팅방이나 통화 방에 참여하였을 때 발생합니다.
 socket.on("welcome", async () => {
+  myDataChannel = myPeerConnection.createDataChannel("chat");
+  myDataChannel.addEventListener("message", (event) => console.log(event.data));
+  console.log("made data channel");
   // RTCPeerConnection 객체(myPeerConnection)를 사용하여 SDP(Session Description Protocol) 오퍼를 생성합니다.
   // createOffer 메서드는 비동기적으로 실행되며 프로미스를 반환합니다.
   const offer = await myPeerConnection.createOffer();
@@ -224,6 +227,10 @@ socket.on("welcome", async () => {
 
 // 웹소켓에서 'offer' 이벤트를 수신하는 리스너를 설정합니다. 이 이벤트에는 원격 피어로부터의 SDP 오퍼가 포함됩니다.
 socket.on("offer", async (offer) => {
+  myPeerConnection.addEventListener("datachannel", (event) =>{
+    myDataChannel = event.channel;
+    myDataChannel.addEventListener("message", (event) => console.log(event.data));
+  });
   console.log("received the offer");
   // 받은 오퍼를 통해 피어 연결의 원격 설명을 설정합니다.
   // 이는 원격 피어가 사용하는 미디어 형식과 옵션을 이해하도록 피어 연결을 구성합니다.
@@ -266,19 +273,20 @@ socket.on("ice", ice => {
 function makeConnection() {
   // RTCPeerConnection 객체를 생성하고 myPeerConnection 변수에 할당합니다.
   // 이 객체는 로컬과 원격 피어 간의 연결을 관리하며, 미디어 데이터 및 기타 데이터 스트림을 교환하는 데 사용됩니다.
-  myPeerConnection = new RTCPeerConnection({
-    iceServers: [
-      {
-        urls: [
-          "stun:stun.l.google.com:19302",
-          "stun:stun1.l.google.com:19302",
-          "stun:stun2.l.google.com:19302",
-          "stun:stun3.l.google.com:19302",
-          "stun:stun4.l.google.com:19302",
-        ],
-      },
-    ],
-  });
+  myPeerConnection = new RTCPeerConnection();
+  // myPeerConnection = new RTCPeerConnection({
+  //   iceServers: [
+  //     {
+  //       urls: [
+  //         "stun:stun.l.google.com:19302",
+  //         "stun:stun1.l.google.com:19302",
+  //         "stun:stun2.l.google.com:19302",
+  //         "stun:stun3.l.google.com:19302",
+  //         "stun:stun4.l.google.com:19302",
+  //       ],
+  //     },
+  //   ],
+  // });
   myPeerConnection.addEventListener("icecandidate", handleIce);
   myPeerConnection.addEventListener("addstream", handleAddStream);
   // myStream 객체에서 모든 미디어 트랙을 가져와 각 트랙을 myPeerConnection에 추가합니다.
