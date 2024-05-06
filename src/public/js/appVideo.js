@@ -148,6 +148,13 @@ async function handleCameraChange() {
     // muted가 false인 경우, 모든 오디오 트랙을 활성화합니다.
     myStream.getAudioTracks().forEach((track) => (track.enabled = true));
   }
+  if(myPeerConnection) {
+    const videoTrack = myStream.getvideoTracks()[0];
+    const videoSender = myPeeConnection
+      .getSenders()
+      .find((sender) => sender.track.kind === "video");
+    videoSender.replaceTrack(videoTrack);
+  }
 }
 
 // muteBtn 요소에 "click" 이벤트 리스너를 추가하여 handleMuteClick 함수를 연결합니다.
