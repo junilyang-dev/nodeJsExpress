@@ -266,7 +266,19 @@ socket.on("ice", ice => {
 function makeConnection() {
   // RTCPeerConnection 객체를 생성하고 myPeerConnection 변수에 할당합니다.
   // 이 객체는 로컬과 원격 피어 간의 연결을 관리하며, 미디어 데이터 및 기타 데이터 스트림을 교환하는 데 사용됩니다.
-  myPeerConnection = new RTCPeerConnection();
+  myPeerConnection = new RTCPeerConnection({
+    iceServers: [
+      {
+        urls: [
+          "stun:stun.l.google.com:19302",
+          "stun:stun1.l.google.com:19302",
+          "stun:stun2.l.google.com:19302",
+          "stun:stun3.l.google.com:19302",
+          "stun:stun4.l.google.com:19302",
+        ],
+      },
+    ],
+  });
   myPeerConnection.addEventListener("icecandidate", handleIce);
   myPeerConnection.addEventListener("addstream", handleAddStream);
   // myStream 객체에서 모든 미디어 트랙을 가져와 각 트랙을 myPeerConnection에 추가합니다.
