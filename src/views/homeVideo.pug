@@ -8,24 +8,31 @@ html(lang="en")
       link(rel="stylesheet", href="https://unpkg.com/mvp.css")
     body
       header
-        h1 Noom
-        h3#roomNameh3
+        nav(style="margin-bottom:0px;")
+          h1 Noom 
+        
       main
         div#welcome
           form
             input#roomName(placeholder="room name", required, type="text")
-            input#nickname(placeholder="nickname", required, type="text")
+            input#nickName(placeholder="nick name", required, type="text")
             button Enter room
         div#call
-          div#myStream(style="width:50%;float:left;")
-            h4#myNickName
-            video#myFace(autoplay,playsinline,width="400",height="400")
-            button#mute Mute
-            button#camera Turn Camera off
-            select#cameras
-          div(style="width:50%;float:right;")
-            h3
-            h4#peerNickName
-            video#peerFace(autoplay,playsinline,width="400",height="400")
+          section#myStream
+            header
+              h2#h2RoomName
+            aside
+              h3#myNickName
+              video#myFace(autoplay,playsinline,width="100%")
+              button#mute Mute
+              button#camera Turn Camera Off
+              select#cameras(style="width:100%")
+            aside
+              h3#peerNickName
+              video#peerFace(autoplay,playsinline,width="100%")
+              ul(style="width:100%")
+              form#name
+                input(placeholder="nickname", required, type="text")
+                button change
       script(src="/socket.io/socket.io.js")
       script(src="/public/js/appVideo.js")

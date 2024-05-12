@@ -3,10 +3,11 @@ const socket = io();
 
 // HTML 문서에서 video 요소를 선택하여 myFace 변수에 저장합니다.
 const myFace = document.getElementById("myFace");
-// HTML 문서에서 버튼 요소를 선택하여 muteBtn 변수에 저장합니다.
+// HTML 문서에서 음소거 버튼을 선택하여 muteBtn 변수에 저장합니다.
 const muteBtn = document.getElementById("mute");
 // HTML 문서에서 카메라 버튼을 선택하여 cameraBtn 변수에 저장합니다.
 const cameraBtn = document.getElementById("camera");
+// HTML 문서에서 ID가 'cameras'인 요소를 찾아 camerasSelect 변수에 저장합니다.
 const camerasSelect = document.getElementById("cameras");
 
 // 'welcome' 아이디를 가진 HTML 요소를 찾아 welcome 변수에 저장합니다.
@@ -18,7 +19,6 @@ const call = document.getElementById("call");
 // call 요소를 화면에서 숨깁니다. 이는 초기 상태에서 통화 관련 UI를 숨기기 위해 사용됩니다.
 call.hidden = true;
 
-
 // 미디어 스트림을 저장할 변수를 선언합니다.
 let myStream;
 // 음소거 상태를 저장할 변수를 선언하고, 초기값은 false로 설정합니다. (음소거되지 않음)
@@ -28,7 +28,6 @@ let cameraOff = false;
 // roomName 변수를 선언하고 초기에는 undefined로 설정합니다.
 // 이 변수는 나중에 채팅방 이름을 저장하는 데 사용될 수 있습니다.
 let roomName;
-
 let nickName;
 // myPeerConnection 변수를 선언합니다. 이 변수는 나중에 RTCPeerConnection 객체의 인스턴스를 저장하는 데 사용될 수 있습니다.
 // RTCPeerConnection은 WebRTC API의 일부로, 브라우저 간 피어 투 피어 연결을 설정하는 데 사용됩니다.
@@ -38,56 +37,57 @@ let myDataChannel;
 // getCameras라는 비동기 함수를 정의합니다.
 async function getCameras() {
   try {
-    // 사용 가능한 모든 미디어 입력 장치 목록을 요청합니다.
+    // 사용 가능한 모든 미디어 장치를 나열합니다.
     const devices = await navigator.mediaDevices.enumerateDevices();
-    // 가져온 장치 목록에서 비디오 입력 장치(카메라)만을 필터링합니다.
-    const cameras = devices.filter((device) => device.kind === "videoinput");
-    // 현재 스트림에서 사용 중인 비디오 트랙을 가져옵니다.
+    // 나열된 장치 중에서 비디오 입력 장치(카메라)만을 필터링합니다.
+    const cameras = devices.filter(device => device.kind === "videoinput");
+    // 현재 스트림에서 첫 번째 비디오 트랙을 가져옵니다. 이 트랙은 현재 사용 중인 카메라를 대표합니다.
     const currentCamera = myStream.getVideoTracks()[0];
-    // 필터링된 카메라 리스트를 순회하면서 각 카메라에 대한 처리를 수행합니다.
+    // 필터링된 카메라 리스트를 순회하면서 각 카메라에 대해 처리를 수행합니다.
     cameras.forEach((camera) => {
       // 새로운 'option' HTML 요소를 생성합니다.
       const option = document.createElement("option");
       // option 요소의 value 속성에 카메라의 deviceId를 설정합니다.
       option.value = camera.deviceId;
-      // option 요소의 텍스트 내용으로 카메라의 라벨을 설정합니다.
+      // option 요소의 텍스트로 카메라의 라벨(이름)을 설정합니다.
       option.innerText = camera.label;
-      // 현재 사용 중인 카메라와 일치하는 경우, 이 option을 선택된 상태로 설정합니다.
-      if (currentCamera.label == camera.label) {
+      // 현재 사용 중인 카메라와 일치하는 경우, 해당 option을 선택된 상태로 설정합니다.
+      if(currentCamera.label == camera.label) {
         option.selected = true;
       }
-      // 생성된 option 요소를 카메라 선택을 위한 드롭다운 리스트에 추가합니다.
+      // 생성된 option 요소를 카메라 선택 드롭다운 메뉴에 추가합니다.
       camerasSelect.appendChild(option);
     });
-  } catch (e) {
-    // 오류 발생 시 콘솔에 오류 메시지를 출력합니다.
+  } catch(e) {
+    // 오류가 발생하면 콘솔에 오류 메시지를 출력합니다.
     console.log(e);
   }
 }
 
+
 // 비동기 함수 getMedia를 정의합니다. 이 함수는 사용자의 비디오 및 오디오를 가져옵니다.
 async function getMedia(deviceId) {
-  // initialConstraints 객체를 정의합니다. 이 객체는 비디오와 오디오 스트림에 대한 초기 요청 제약 조건을 지정합니다.
+  // initialConstraints 객체는 비디오와 오디오 스트림에 대한 초기 요청 제약 조건을 지정합니다.
   const initialConstraints = {
-    audio: true, // 오디오 트랙을 요청합니다. true는 시스템 기본 마이크를 사용하도록 요청합니다.
-    video: { facingMode: "user" }, // 비디오 트랙을 요청하며, 사용자의 전면 카메라(일반적으로 스마트폰이나 노트북의 전면)를 사용하도록 지정합니다.
+      audio: true,  // 오디오 트랙을 요청합니다. true는 시스템 기본 마이크를 사용하도록 요청합니다.
+      video: { facingMode: "user" }  // 비디오 트랙을 요청하며, 사용자(전면) 카메라를 사용하도록 지정합니다.
   };
 
-  // cameraConstraints 객체를 정의합니다. 이 객체는 특정 카메라 장치를 선택할 때 사용되는 요청 제약 조건을 지정합니다.
+  // cameraConstraints 객체는 특정 카메라를 선택할 때 사용되는 요청 제약 조건을 지정합니다.
   const cameraConstraints = {
-    audio: true, // 오디오 트랙을 요청합니다. 여기서도 시스템 기본 마이크를 사용하도록 설정됩니다.
-    video: { deviceId: deviceId }, // 비디오 트랙을 요청하며, 특정 deviceId를 가진 카메라를 사용하도록 지정합니다.
-    // deviceId는 카메라 선택 로직에 의해 결정된 특정 카메라의 고유 식별자입니다.
+      audio: true,  // 오디오 트랙을 요청합니다. 여기서도 기본 마이크를 사용하도록 요청합니다.
+      video: { deviceId: { exact: deviceId } }  // 비디오 트랙을 요청하며, 특정 deviceId를 가진 카메라를 정확히 사용하도록 설정합니다.
+      // deviceId는 카메라 선택 로직에 의해 결정된 특정 카메라의 고유 식별자입니다.
   };
+
   try {
     // navigator.mediaDevices.getUserMedia를 사용하여 비디오 및 오디오 스트림을 요청합니다.
-    myStream = await navigator.mediaDevices.getUserMedia(
-      //deviceId가 있을 경우 cameraConstraints 가져오기, 없으면 initialConstraints 가져오기
-      deviceId ? cameraConstraints : initialConstraints,
-    );
+    myStream = await navigator.mediaDevices.getUserMedia(deviceId ? cameraConstraints : initialConstraints);
+    // 스트림 객체를 콘솔에 출력합니다.
+    //console.log(myStream);
     // 가져온 미디어 스트림을 video 요소의 srcObject 속성에 할당하여 비디오를 표시합니다.
     myFace.srcObject = myStream;
-    if (!deviceId) {
+    if (!deviceId){
       await getCameras();
     }
   } catch (e) {
@@ -98,12 +98,13 @@ async function getMedia(deviceId) {
 
 // 음소거 버튼 클릭 이벤트를 처리하는 함수를 정의합니다.
 function handleMuteClick() {
-  // myStream에서 오디오 트랙들을 가져옵니다. myStream은 getUserMedia()를 통해 얻은 미디어 스트림 객체입니다.
-  myStream.getAudioTracks().forEach((track) => {
-    // 각 오디오 트랙의 enabled 속성을 토글합니다.
-    // enabled 속성은 불리언 값으로, 트랙이 활성화되어 있으면 true, 비활성화되어 있으면 false입니다.
-    track.enabled = !track.enabled;
-  });
+  // myStream에서 오디오 트랙들을 가져와 각 트랙에 대해 반복 실행합니다.
+  myStream.getAudioTracks().forEach((track) => 
+      // 각 오디오 트랙의 enabled 상태를 현재의 반대로 설정합니다.
+      // 즉, 트랙이 활성화되어 있으면 비활성화하고, 비활성화되어 있으면 활성화합니다.
+      track.enabled = !track.enabled
+  );
+
   if (!muted) {
     // 현재 음소거 상태가 아니라면 버튼의 텍스트를 "Unmute"로 변경하고, 음소거 상태를 true로 설정합니다.
     muteBtn.innerText = "Unmute";
@@ -117,12 +118,12 @@ function handleMuteClick() {
 
 // 카메라 버튼 클릭 이벤트를 처리하는 함수를 정의합니다.
 function handleCameraClick() {
-  // myStream에서 비디오 트랙들을 가져옵니다. myStream은 getUserMedia()를 통해 얻은 미디어 스트림 객체입니다.
-  myStream.getVideoTracks().forEach((track) => {
-    // 각 비디오 트랙의 enabled 속성을 토글합니다.
-    // enabled 속성은 불리언 값으로, 트랙이 활성화되어 있으면 true, 비활성화되어 있으면 false입니다.
-    track.enabled = !track.enabled;
-  });
+  // myStream에서 비디오 트랙들을 가져와 각 트랙에 대해 반복 실행합니다.
+  myStream.getVideoTracks().forEach((track) => 
+      // 각 비디오 트랙의 enabled 상태를 현재의 반대로 설정합니다.
+      // 즉, 트랙이 활성화되어 있으면 비활성화하고, 비활성화되어 있으면 활성화합니다.
+      track.enabled = !track.enabled
+  );
 
   if (cameraOff) {
     // 현재 카메라가 꺼져 있다면 버튼의 텍스트를 "Turn Camera Off"로 변경하고, 카메라 상태를 false로 설정합니다.
@@ -136,36 +137,38 @@ function handleCameraClick() {
 }
 
 // handleCameraChange라는 비동기 함수를 정의합니다.
-async function handleCameraChange() {
-  // 현재 비디오 요소(myFace)의 소스 객체를 현재 미디어 스트림(myStream)으로 설정합니다.
-  myFace.srcObject = myStream;
-  // getMedia 함수를 호출하여 선택된 카메라의 deviceId에 따라 미디어 스트림을 업데이트합니다.
-  // camerasSelect.value는 사용자가 선택한 카메라의 deviceId를 포함합니다.
+async function handleCameraChange(){
+  // getMedia 함수를 호출하여 사용자가 선택한 새 카메라로 미디어 스트림을 업데이트합니다.
+  // camerasSelect.value는 드롭다운 메뉴에서 선택된 카메라의 deviceId를 나타냅니다.
   await getMedia(camerasSelect.value);
-  // muted 변수의 값에 따라 오디오 트랙의 활성화 상태를 조정합니다.
+
+  // muted 변수의 값이 true인지 확인합니다. muted는 전역 변수로, 오디오가 음소거 상태인지 아닌지를 나타냅니다.
   if (muted) {
-    // muted가 true인 경우, 모든 오디오 트랙을 비활성화합니다.
+    // 음소거 상태인 경우, 모든 오디오 트랙을 비활성화합니다.
     myStream.getAudioTracks().forEach((track) => (track.enabled = false));
   } else {
-    // muted가 false인 경우, 모든 오디오 트랙을 활성화합니다.
+    // 음소거 상태가 아닌 경우, 모든 오디오 트랙을 활성화합니다.
     myStream.getAudioTracks().forEach((track) => (track.enabled = true));
   }
+
   if(myPeerConnection) {
-    const videoTrack = myStream.getvideoTracks()[0];
-    const videoSender = myPeeConnection
+    const videoTrack = myStream.getVideoTracks()[0];
+    const videoSender = myPeerConnection
       .getSenders()
       .find((sender) => sender.track.kind === "video");
+    console.log(videoSender);
     videoSender.replaceTrack(videoTrack);
   }
 }
+
 
 // muteBtn 요소에 "click" 이벤트 리스너를 추가하여 handleMuteClick 함수를 연결합니다.
 muteBtn.addEventListener("click", handleMuteClick);
 // cameraBtn 요소에 "click" 이벤트 리스너를 추가하여 handleCameraClick 함수를 연결합니다.
 cameraBtn.addEventListener("click", handleCameraClick);
-// camerasSelect 요소에 'input' 이벤트 리스너를 추가합니다.
-// 사용자가 드롭다운 메뉴에서 다른 카메라를 선택하면 handleCameraChange 함수가 호출됩니다.
-camerasSelect.addEventListener("input", handleCameraChange);
+// camerasSelect 요소에 'roomNameInput' 이벤트 리스너를 추가합니다.
+// 이 리스너는 사용자가 카메라 선택 드롭다운 메뉴에서 입력(카메라 선택 변경)을 할 때마다 작동합니다.
+camerasSelect.addEventListener("roomNameInput", handleCameraChange);
 
 // Welcome Form (join a room)
 
@@ -190,26 +193,29 @@ async function initCall() {
 async function handleWelcomeSubmit(event) {
   // 기본 폼 제출 동작을 방지합니다.
   event.preventDefault();
+  // welcomeForm에서 'roomNameInput' 요소를 찾아 roomNameInput 변수에 저장합니다.
   const roomNameInput = welcomeForm.querySelector("#roomName");
-  const nickNameInput = welcomeForm.querySelector("#nickname");
+  const nickNameInput = welcomeForm.querySelector("#nickName");
   await initCall();
-  // socket을 통해 'join_room' 이벤트를 서버에 전송하며, 방 이름(input.value)과 콜백 함수(initCall)를 전달합니다.
+  // socket을 통해 'join_room' 이벤트를 서버에 전송하며, 방 이름(roomNameInput.value)과 콜백 함수(initCall)를 전달합니다.
   socket.emit("join_room", roomNameInput.value, nickNameInput.value);
   // 입력된 방 이름을 roomName 변수에 저장합니다.
   roomName = roomNameInput.value;
   nickName = nickNameInput.value;
-  const h3 = document.querySelector("#roomNameh3");
-  h3.innerText = `Room ${roomName}`;
-  const h4 = call.querySelector("#myNickName");
-  h4.innerText = `${nickNameInput.value}`;
-  // input 필드를 비웁니다.
+
+  // roomNameInput 필드를 비웁니다.
   roomNameInput.value = "";
+  const h2RoomName = document.querySelector("#h2RoomName");
+  const myNickName = document.querySelector("#myNickName");
+  h2RoomName.innerText = roomName;
+  myNickName.innerText = nickName;
+  document.querySelector("#name input").value = nickName;
 }
 
 // welcomeForm 요소에 'submit' 이벤트 리스너를 추가합니다. 폼이 제출될 때 handleWelcomeSubmit 함수가 호출됩니다.
 welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 
-// Sicket Code
+// Socket Code
 
 // 'welcome' 이벤트가 socket에서 수신되면 실행되는 이벤트 리스너를 설정합니다.
 // 이 이벤트는 다른 클라이언트가 채팅방이나 통화 방에 참여하였을 때 발생합니다.
@@ -231,10 +237,9 @@ socket.on("welcome", async () => {
   socket.emit("offer", offer, roomName);
 });
 
-
 // 웹소켓에서 'offer' 이벤트를 수신하는 리스너를 설정합니다. 이 이벤트에는 원격 피어로부터의 SDP 오퍼가 포함됩니다.
 socket.on("offer", async (offer) => {
-  myPeerConnection.addEventListener("datachannel", (event) =>{
+  myPeerConnection.addEventListener("datachannel", (event) => {
     myDataChannel = event.channel;
     myDataChannel.addEventListener("message", (event) => console.log(event.data));
   });
@@ -246,15 +251,15 @@ socket.on("offer", async (offer) => {
   // 받은 오퍼에 대한 응답으로 SDP 답변을 생성합니다. 이 작업은 비동기적으로 수행되며,
   // 답변이 완성되면 이를 오퍼를 보낸 피어에게 보내기 위한 준비가 됩니다.
   const answer = await myPeerConnection.createAnswer();
-  // socket.emit 메소드를 사용하여 'answer' 이벤트를 서버로 전송합니다.
-  // 이 이벤트는 WebRTC 연결 과정에서 생성된 SDP 답변과 특정 방의 이름을 포함합니다.
-  socket.emit("answer", answer, roomName);
+
   // 생성된 답변으로 로컬 설명을 설정합니다. 이 작업은 로컬 설정을 완료하고,
   // 피어 연결이 이 답변을 원격 피어에게 보내 통신 절차를 완료할 준비를 합니다.
   myPeerConnection.setLocalDescription(answer);
+  // socket.emit 메소드를 사용하여 'answer' 이벤트를 서버로 전송합니다.
+  // 이 이벤트는 WebRTC 연결 과정에서 생성된 SDP 답변과 특정 방의 이름을 포함합니다.
+  socket.emit("answer", answer, roomName);
   console.log("sent the answer");
 });
-
 
 // 'answer' 이벤트를 수신하는 리스너를 설정합니다. 이 이벤트는 원격 피어가 보낸 SDP 답변을 포함하며,
 // 이는 로컬 피어가 보낸 오퍼에 대한 응답입니다.
@@ -263,6 +268,7 @@ socket.on("answer", async (answer) => {
   // 받은 답변을 통해 피어 연결의 원격 설명을 설정합니다.
   // 이 설정은 미디어 세션에 대해 원격 피어가 동의한 구성을 포함합니다.
   myPeerConnection.setRemoteDescription(answer);
+
 });
 
 // WebSocket을 통해 'ice' 이벤트를 수신하는 리스너를 설정합니다.
@@ -272,8 +278,8 @@ socket.on("ice", (ice, nickName) => {
   // 수신된 ICE 후보자를 myPeerConnection 객체에 추가합니다.
   // addIceCandidate 메소드는 원격 피어와의 연결 경로를 설정하는 데 사용되는 ICE 후보자를 처리합니다.
   myPeerConnection.addIceCandidate(ice);
-  const h4 = call.querySelector("#peerNickName");
-  h4.innerText = `${nickName}`;
+  const peerNickName = document.querySelector("#peerNickName");
+  peerNickName.innerText = nickName;
 });
 
 //RTC Code
@@ -282,21 +288,26 @@ socket.on("ice", (ice, nickName) => {
 function makeConnection() {
   // RTCPeerConnection 객체를 생성하고 myPeerConnection 변수에 할당합니다.
   // 이 객체는 로컬과 원격 피어 간의 연결을 관리하며, 미디어 데이터 및 기타 데이터 스트림을 교환하는 데 사용됩니다.
-  myPeerConnection = new RTCPeerConnection();
-  // myPeerConnection = new RTCPeerConnection({
-  //   iceServers: [
-  //     {
-  //       urls: [
-  //         "stun:stun.l.google.com:19302",
-  //         "stun:stun1.l.google.com:19302",
-  //         "stun:stun2.l.google.com:19302",
-  //         "stun:stun3.l.google.com:19302",
-  //         "stun:stun4.l.google.com:19302",
-  //       ],
-  //     },
-  //   ],
-  // });
+  myPeerConnection = new RTCPeerConnection({
+    // iceServers: [
+    //   {
+    //     url: [
+    //       "stun:stun.l.google.com:19302",
+    //       "stun:stun1.l.google.com:19302",
+    //       "stun:stun2.l.google.com:19302",
+    //       "stun:stun3.l.google.com:19302",
+    //       "stun:stun4.l.google.com:19302",
+    //     ],
+    //   },
+    // ],
+  });
+  // myPeerConnection 객체에 'icecandidate' 이벤트 리스너를 추가합니다.
+  // 'icecandidate' 이벤트는 로컬 ICE 에이전트가 네트워크 후보(ICE candidate)를 찾을 때마다 발생합니다.
+  // 이 이벤트가 발생하면 handleIce 콜백 함수가 호출되어 후보를 처리할 수 있습니다.
   myPeerConnection.addEventListener("icecandidate", handleIce);
+  // myPeerConnection 객체에 'addstream' 이벤트 리스너를 추가합니다.
+  // 'addstream' 이벤트는 원격 피어로부터 미디어 스트림이 추가되었을 때 발생합니다.
+  // 이 이벤트가 발생하면 handleAddStream 콜백 함수가 호출되어 추가된 스트림을 처리할 수 있습니다.
   myPeerConnection.addEventListener("addstream", handleAddStream);
   // myStream 객체에서 모든 미디어 트랙을 가져와 각 트랙을 myPeerConnection에 추가합니다.
   // myStream은 getUserMedia()로 획득된 미디어 스트림을 나타내며, 비디오 및 오디오 트랙을 포함할 수 있습니다.
@@ -324,8 +335,4 @@ function handleAddStream(data) {
   // 이는 원격 피어로부터 받은 미디어 스트림을 해당 HTML 요소에서 재생할 수 있게 합니다.
   // 원격 피어의 비디오나 오디오가 사용자에게 보여질 것입니다.
   peerFace.srcObject = data.stream;
-}
-
-function handleNicknameSubmit() {
-  event.preventDefault();
 }
