@@ -30,6 +30,10 @@ const httpServer = http.createServer(app);
 // 생성된 HTTP 서버 위에 WebSocket 서버를 구축합니다. 이렇게 함으로써 HTTP와 WebSocket 요청을 동일한 포트에서 처리할 수 있습니다.
 const wsServer = SocketIO(httpServer);
 
+function conutRoom(roomName) {
+  return wsServer.sockets.adapter.rooms.get(roomName)?.size;
+}
+
 // WebSocket 서버의 'connection' 이벤트를 리스닝합니다.
 // 이 이벤트는 새 클라이언트가 서버에 연결될 때 마다 트리거됩니다.
 wsServer.on("connection", (socket) => {
@@ -42,7 +46,7 @@ wsServer.on("connection", (socket) => {
     socket.join(roomName);
     // 방금 참여한 방에 있는 다른 클라이언트들에게 'welcome' 이벤트를 발송합니다.
     // 이 이벤트는 새로운 사용자의 입장을 다른 참여자들에게 알립니다.
-    socket.to(roomName).emit("welcome");
+    socket.to(roomName).emit("welcome", conutRoom(roomName), updateStatus());
   });
   // 'offer' 이벤트를 리스닝합니다. 이 이벤트는 WebRTC 연결 초기화 과정 중 하나의 클라이언트가 다른 클라이언트에게 연결을 제안할 때 발생합니다.
   socket.on("offer", (offer, roomName) => {
@@ -59,13 +63,61 @@ wsServer.on("connection", (socket) => {
     socket.to(roomName).emit("answer", answer);
   });
   socket.on("ice", (ice, roomName, nickName) => {
-    socket.to(roomName).emit("ice", ice, nickName);
+    socket.to(roomName).emit("ice", ice, nickName, conutRoom(roomName));
   });
-
+  // 새 메시지 전송 이벤트를 처리합니다.
+  socket.on("new_message", (msg, roomName) => {
+    socket.to(roomName).emit("new_message", `${socket.nickname}: ${msg}`);
+  });
 });
 
+function updateStatus() {
+  const status = countAll();
+  const roomsDetail = Object.entries(status.rooms).map(([roomName, count]) => `${roomName} (${count})`);
+
+  wsServer.sockets.emit("status_update", {
+    total: status.total,
+    rooms: Object.keys(status.rooms).length,
+    out: status.out,
+    roomDetail: roomsDetail,
+  });
+}
+
+function countAll() {
+  const adapter = wsServer.sockets.adapter;
+
+  // 전체 접속자 수: 모든 소켓의 개수
+  const total = adapter.sids.size;
+
+  // 방 개수 및 각 방에 있는 사람 수
+  const roomsInfo = {};
+  adapter.rooms.forEach((sockets, roomName) => {
+    // 각 방에 소켓 ID가 방 이름과 동일하지 않으면, 그 방은 실제 채팅방입니다.
+    if (sockets.size > 0 && adapter.sids.has(roomName) === false) {
+      roomsInfo[roomName] = sockets.size;
+    }
+  });
+
+  // 대기 접속자 수 계산: 방에 속하지 않은 소켓의 수
+  let out = 0;
+  adapter.sids.forEach((rooms, socketId) => {
+    if (rooms.size === 1) { // 소켓이 자신의 ID로된 방에만 속해 있다면, 대기 중으로 간주
+      out++;
+    }
+  });
+
+  // 결과 객체 구성
+  var test = {
+    total: total, // 전체 접속자 수
+    rooms: roomsInfo, // 각 방의 이름과 그 방의 소켓 수
+    out: out // 대기 중인 소켓 수
+  };
+
+  return test;
+}
 
 const PORT = 3000;
 httpServer.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+

@@ -10,7 +10,9 @@ html(lang="en")
       header
         nav(style="margin-bottom:0px;")
           h1 Noom 
-        
+          div#state
+            h4
+            ul#roomList
       main
         div#welcome
           form
@@ -31,8 +33,11 @@ html(lang="en")
               h3#peerNickName
               video#peerFace(autoplay,playsinline,width="100%")
               ul(style="width:100%")
-              form#name
-                input(placeholder="nickname", required, type="text")
-                button change
+            form#name
+              input(placeholder="nickname", required, type="text")
+              button change
+            form#msg
+              input(placeholder="message", required, type="text")
+              button send
       script(src="/socket.io/socket.io.js")
       script(src="/public/js/appVideo.js")

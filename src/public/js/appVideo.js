@@ -1,7 +1,7 @@
 // Socket.IO 클라이언트 라이브러리를 통해 서버에 연결하는 소켓 객체를 생성합니다.
 const socket = io();
 
-// HTML 문서에서 video 요소를 선택하여 myFace 변수에 저장합니다.
+// HTML 문서에서 video 요소를 선택하여 myFace 변state수에 저장합니다.
 const myFace = document.getElementById("myFace");
 // HTML 문서에서 음소거 버튼을 선택하여 muteBtn 변수에 저장합니다.
 const muteBtn = document.getElementById("mute");
@@ -219,7 +219,9 @@ welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 
 // 'welcome' 이벤트가 socket에서 수신되면 실행되는 이벤트 리스너를 설정합니다.
 // 이 이벤트는 다른 클라이언트가 채팅방이나 통화 방에 참여하였을 때 발생합니다.
-socket.on("welcome", async () => {
+socket.on("welcome", async (newCount) => {
+  const h2RoomName = document.querySelector("#h2RoomName");
+  h2RoomName.innerText = `Room ${roomName} (${newCount})`;
   myDataChannel = myPeerConnection.createDataChannel("chat");
   myDataChannel.addEventListener("message", (event) => console.log(event.data));
   console.log("made data channel");
@@ -273,11 +275,13 @@ socket.on("answer", async (answer) => {
 
 // WebSocket을 통해 'ice' 이벤트를 수신하는 리스너를 설정합니다.
 // 이 이벤트는 ICE 후보자(네트워크 연결 정보)를 포함하고 있습니다.
-socket.on("ice", (ice, nickName) => {
+socket.on("ice", (ice, nickName, newCount) => {
   console.log("received ice candidate");
   // 수신된 ICE 후보자를 myPeerConnection 객체에 추가합니다.
   // addIceCandidate 메소드는 원격 피어와의 연결 경로를 설정하는 데 사용되는 ICE 후보자를 처리합니다.
   myPeerConnection.addIceCandidate(ice);
+  const h2RoomName = document.querySelector("#h2RoomName");
+  h2RoomName.innerText = `Room ${roomName} (${newCount})`;
   const peerNickName = document.querySelector("#peerNickName");
   peerNickName.innerText = nickName;
 });
@@ -336,3 +340,61 @@ function handleAddStream(data) {
   // 원격 피어의 비디오나 오디오가 사용자에게 보여질 것입니다.
   peerFace.srcObject = data.stream;
 }
+
+
+// HTML 문서에서 'name' 폼 요소를 선택하여 nameForm 변수에 저장합니다.
+const nameForm = document.getElementById("name");
+// HTML 문서에서 'msg' 폼 요소를 선택하여 msgForm 변수에 저장합니다.
+const msgForm = document.getElementById("msg");
+
+// handleNicknameSubmit 함수를 정의합니다. 이 함수는 닉네임 변경 폼 제출 이벤트를 처리합니다.
+function handleNicknameSubmit(event) {
+  // 기본 폼 제출 동작을 방지합니다.
+  event.preventDefault();
+  // nameForm에서 입력된 닉네임을 가져옵니다.
+  const input = nameForm.querySelector("input");
+  // 서버로 'nickname' 이벤트와 입력된 닉네임을 전송합니다.
+  socket.emit("nickname", input.value);
+  // 입력된 닉네임을 전역 변수 nickName에 저장합니다.
+  nickName = input.value;
+  // 닉네임 필드를 비웁니다.
+  input.value = "";
+  // myNickName 요소의 텍스트를 변경된 닉네임으로 설정합니다.
+  const myNickName = document.querySelector("#myNickName");
+  myNickName.innerText = nickName;
+}
+
+// handleMessageSubmit 함수를 정의합니다. 이 함수는 메시지 전송 폼 제출 이벤트를 처리합니다.
+function handleMessageSubmit(event) {
+  // 기본 폼 제출 동작을 방지합니다.
+  event.preventDefault();
+  // msgForm에서 입력된 메시지를 가져옵니다.
+  const input = msgForm.querySelector("input");
+  // 서버로 'new_message' 이벤트와 입력된 메시지를 전송합니다.
+  socket.emit("new_message", input.value, roomName);
+  // 입력된 메시지를 myDataChannel을 통해 전송합니다.
+  myDataChannel.send(`${nickName}: ${input.value}`);
+  // 입력된 메시지를 채팅 화면에 표시하기 위해 appendMessage 함수를 호출합니다.
+  appendMessage(`You: ${input.value}`);
+  // 메시지 필드를 비웁니다.
+  input.value = "";
+}
+
+// appendMessage 함수를 정의합니다. 이 함수는 채팅 메시지를 화면에 추가합니다.
+function appendMessage(message) {
+  // 새로운 'li' HTML 요소를 생성합니다.
+  const ul = document.querySelector("ul");
+  const li = document.createElement("li");
+  // li 요소의 텍스트를 입력된 메시지로 설정합니다.
+  li.innerText = message;
+  // ul 요소에 li 요소를 추가합니다.
+  ul.appendChild(li);
+}
+
+// nameForm 요소에 'submit' 이벤트 리스너를 추가하여 handleNicknameSubmit 함수를 연결합니다.
+nameForm.addEventListener("submit", handleNicknameSubmit);
+// msgForm 요소에 'submit' 이벤트 리스너를 추가하여 handleMessageSubmit 함수를 연결합니다.
+msgForm.addEventListener("submit", handleMessageSubmit);
+
+// WebSocket에서 'new_message' 이벤트를 수신하는 리스너를 설정합니다.
+socket.on("new_message", appendMessage);
