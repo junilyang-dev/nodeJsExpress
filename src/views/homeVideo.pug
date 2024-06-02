@@ -7,37 +7,43 @@ html(lang="en")
       title Noom
       link(rel="stylesheet", href="https://unpkg.com/mvp.css")
     body
-      header
+      header(style="padding:1rem;")
         nav(style="margin-bottom:0px;")
           h1 Noom 
           div#state
             h4
             ul#roomList
-      main
-        div#welcome
-          form
-            input#roomName(placeholder="room name", required, type="text")
-            input#nickName(placeholder="nick name", required, type="text")
-            button Enter room
-        div#call
-          section#myStream
-            header
-              h2#h2RoomName
-            aside
-              h3#myNickName
-              video#myFace(autoplay,playsinline,width="100%")
-              button#mute Mute
-              button#camera Turn Camera Off
-              select#cameras(style="width:100%")
-            aside
-              h3#peerNickName
-              video#peerFace(autoplay,playsinline,width="100%")
-              ul(style="width:100%")
-            form#name
-              input(placeholder="nickname", required, type="text")
-              button change
-            form#msg
-              input(placeholder="message", required, type="text")
-              button send
+        main(style="padding:1rem;")
+          details#status 
+            summary Noom 상태
+            p Total Connections: 0
+            p Total Rooms: 0
+            p Waiting Users: 0
+          ul#roomList
+          div#welcome
+            form
+              input#roomName(placeholder="room name", required, type="text")
+              input#nickName(placeholder="nick name", required, type="text")
+              button Enter room
+          div#call
+            section#myStream
+              header
+                h2#h2RoomName
+              aside
+                h3#myNickName
+                video#myFace(autoplay,playsinline,width="100%")
+                button#mute Mute
+                button#camera Turn Camera Off
+                select#cameras(style="width:100%")
+              aside
+                h3#peerNickName
+                video#peerFace(autoplay,playsinline,width="100%")
+                ul#msgList(style="width:100%")
+              form#name
+                input(placeholder="nickname", required, type="text")
+                button change
+              form#msg
+                input(placeholder="message", required, type="text")
+                button send
       script(src="/socket.io/socket.io.js")
       script(src="/public/js/appVideo.js")

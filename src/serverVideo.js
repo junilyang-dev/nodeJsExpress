@@ -37,10 +37,12 @@ function conutRoom(roomName) {
 // WebSocket 서버의 'connection' 이벤트를 리스닝합니다.
 // 이 이벤트는 새 클라이언트가 서버에 연결될 때 마다 트리거됩니다.
 wsServer.on("connection", (socket) => {
+  updateStatus();
   socket["nickname"] = "Anon";
   // 연결된 클라이언트의 소켓에 대하여 'join_room' 이벤트를 리스닝합니다.
   // 클라이언트가 특정 방에 참여하고자 할 때 이 이벤트가 발생합니다.
   socket.on("join_room", (roomName,nickName) => {
+    updateStatus();
     socket["nickname"] = nickName;
     // 클라이언트 소켓을 roomName 변수로 명시된 방에 추가합니다.
     socket.join(roomName);
@@ -63,11 +65,23 @@ wsServer.on("connection", (socket) => {
     socket.to(roomName).emit("answer", answer);
   });
   socket.on("ice", (ice, roomName, nickName) => {
+    updateStatus();
     socket.to(roomName).emit("ice", ice, nickName, conutRoom(roomName));
   });
   // 새 메시지 전송 이벤트를 처리합니다.
   socket.on("new_message", (msg, roomName) => {
     socket.to(roomName).emit("new_message", `${socket.nickname}: ${msg}`);
+  });
+
+  // 클라이언트가 연결을 끊기 직전에 발생하는 'disconnecting' 이벤트를 리스닝합니다.
+  socket.on("disconnecting", () => {
+    // 클라이언트가 현재 속해 있는 모든 방을 순회합니다.
+    socket.rooms.forEach((room) => {
+      // 해당 방에 있는 다른 클라이언트들에게 'bye' 이벤트를 방송합니다.
+      // 이는 현재 클라이언트가 방을 떠나고 있음을 알리는 신호입니다.
+      socket.to(room).emit("bye", socket.nickname, conutRoom(room)-1);
+      updateStatus();
+    });
   });
 });
 

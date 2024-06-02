@@ -383,7 +383,7 @@ function handleMessageSubmit(event) {
 // appendMessage 함수를 정의합니다. 이 함수는 채팅 메시지를 화면에 추가합니다.
 function appendMessage(message) {
   // 새로운 'li' HTML 요소를 생성합니다.
-  const ul = document.querySelector("ul");
+  const ul = document.querySelector("#msgList");
   const li = document.createElement("li");
   // li 요소의 텍스트를 입력된 메시지로 설정합니다.
   li.innerText = message;
@@ -398,3 +398,27 @@ msgForm.addEventListener("submit", handleMessageSubmit);
 
 // WebSocket에서 'new_message' 이벤트를 수신하는 리스너를 설정합니다.
 socket.on("new_message", appendMessage);
+
+socket.on("status_update", ({total, rooms, out, roomDetail}) => {
+  const statusParagraphs = document.querySelectorAll("#status p");
+  statusParagraphs[0].innerText = `Total Connections: ${total}`;
+  statusParagraphs[1].innerText = `Total Rooms: ${rooms}`;
+  statusParagraphs[2].innerText = `Waiting Users: ${out}`;
+  
+  // 방 목록을 업데이트
+  const roomList = document.getElementById("roomList");
+  roomList.innerHTML = ""; // 기존 목록 초기화
+    roomDetail.forEach(room => {
+    const li = document.createElement("li");
+    li.innerText = room; // 방 이름과 참여 인원 수를 표시
+    li.addEventListener("click", () => {
+      socket.emit("enter_room", room.split(" (")[0], showRoom); // 괄호 전의 문자열이 방 이름
+      roomName = room.split(" (")[0];
+    });
+      if (room.split(" (")[0] === roomName) {
+        li.style.color = "red"; // 현재 방을 빨간색으로 표시
+        li.style.fontWeight = "bold"; // 글자를 굵게
+      }
+    roomList.appendChild(li);
+  });
+});
